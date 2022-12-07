@@ -1,0 +1,139 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "**"
+      - "!open-in-colab"
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: "0 0 * * THU"
+  workflow_dispatch:
+
+jobs:
+  test_library:
+    runs-on: ubuntu-latest
+    container: ubuntu:rolling
+    steps:
+      - name: Install git
+        run: |
+          apt -qq update
+          apt install -y -qq git
+      - name: Mark workspace as safe
+        run: |
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+      - uses: actions/checkout@v3
+        with:
+          set-safe-directory: false
+      - name: Install non-pip dependencies of the workflow call library
+        run: |
+          export DEBIAN_FRONTEND="noninteractive"
+          apt install -y -qq imagemagick inkscape python3-pip wget
+          wget https://github.com/rclone/rclone/releases/download/v1.59.1/rclone-v1.59.1-linux-amd64.deb -O /tmp/rclone-v1.59.1-linux-amd64.deb
+          dpkg -i /tmp/rclone-v1.59.1-linux-amd64.deb
+      - name: Install the workflow call library
+        run: |
+          python3 -m pip install .[docs,lint,tests]
+      - name: Run flake8 and mypy checks
+        run: |
+          python3 -m flake8 .
+          python3 -m mypy .
+          python3 -m nbqa flake8 .
+          python3 -m nbqa mypy .
+      - name: Run tests
+        run: |
+          python3 -m coverage run --source=open_in_cloud_workflow -m pytest tests
+        env:
+          RCLONE_CONFIG_DRIVE_CLIENT_ID: "${{ secrets.RCLONE_CONFIG_DRIVE_CLIENT_ID }}"
+          RCLONE_CONFIG_DRIVE_CLIENT_SECRET: "${{ secrets.RCLONE_CONFIG_DRIVE_CLIENT_SECRET }}"
+          RCLONE_CONFIG_DRIVE_TOKEN: "${{ secrets.RCLONE_CONFIG_DRIVE_TOKEN }}"
+      - name: Check test coverage
+        run: |
+          python3 -m coverage report --fail-under=100 --show-missing --skip-covered
+      - name: Warn if scheduled workflow is about to be disabled
+        if: github.repository == 'fem-on-colab/open-in-colab-workflow' && github.ref == 'refs/heads/main' && github.event_name == 'schedule'
+        uses: fem-on-colab/warn-workflow-about-to-be-disabled-action@main
+        with:
+          workflow-filename: ci.yml
+          days-elapsed: 50
+
+  test_workflow_artifact:
+    needs: [test_library]
+    uses: fem-on-colab/open-in-colab-workflow/.github/workflows/workflow_call.yml@main
+    with:
+      work_directory: open_in_colab
+      notebook_pattern: "**/*.ipynb"
+      extra_files_pattern: "**/*.dat"
+      notebook_preparation: |
+        rsync -avz --include "*/" --include="*.ipynb" --exclude="*" tests open_in_colab/
+      extra_files_preparation: |
+        rsync -avz --include "*/" --include="*.png" --include="*.jpg" --include="*.svg" --exclude="*" tests open_in_colab/
+        mkdir -p open_in_colab/tests/data/extras/
+        echo "This is an extra file" > open_in_colab/tests/data/extras/extra.dat
+      fem_on_colab_packages: |
+        mpi4py
+      pip_packages: |
+        python-dateutil$dateutil
+        kaleido%plotly
+        itkwidgets
+      test_script: |
+        python3 -m pip install plotly
+        python3 -m pytest --nbval open_in_colab/tests
+      publish_on: artifact@open-in-colab
+      publish_if_repository: fem-on-colab/open-in-colab-workflow
+
+  test_workflow_drive:
+    needs: [test_library]
+    uses: fem-on-colab/open-in-colab-workflow/.github/workflows/workflow_call.yml@main
+    with:
+      work_directory: open_in_colab
+      notebook_pattern: "**/*.ipynb"
+      extra_files_pattern: "**/*.dat"
+      notebook_preparation: |
+        rsync -avz --include "*/" --include="*.ipynb" --exclude="*" tests open_in_colab/
+      extra_files_preparation: |
+        rsync -avz --include "*/" --include="*.png" --include="*.jpg" --include="*.svg" --exclude="*" tests open_in_colab/
+        mkdir -p open_in_colab/tests/data/extras/
+        echo "This is an extra file" > open_in_colab/tests/data/extras/extra.dat
+      fem_on_colab_packages: |
+        mpi4py
+      pip_packages: |
+        python-dateutil$dateutil
+        kaleido%plotly
+        itkwidgets
+      test_script: |
+        python3 -m pip install plotly
+        python3 -m pytest --nbval open_in_colab/tests
+      publish_on: drive@GitHub/open_in_colab_workflow
+      publish_if_repository: fem-on-colab/open-in-colab-workflow
+    secrets:
+      RCLONE_CONFIG_DRIVE_CLIENT_ID: "${{ secrets.RCLONE_CONFIG_DRIVE_CLIENT_ID }}"
+      RCLONE_CONFIG_DRIVE_CLIENT_SECRET: "${{ secrets.RCLONE_CONFIG_DRIVE_CLIENT_SECRET }}"
+      RCLONE_CONFIG_DRIVE_TOKEN: "${{ secrets.RCLONE_CONFIG_DRIVE_TOKEN }}"
+
+  test_workflow_github:
+    needs: [test_library]
+    uses: fem-on-colab/open-in-colab-workflow/.github/workflows/workflow_call.yml@main
+    with:
+      work_directory: open_in_colab
+      notebook_pattern: "**/*.ipynb"
+      extra_files_pattern: "**/*.dat"
+      notebook_preparation: |
+        rsync -avz --delete --include "*/" --include="*.ipynb" --exclude="*" tests open_in_colab/
+      extra_files_preparation: |
+        rsync -avz --delete --include "*/" --include="*.png" --include="*.jpg" --include="*.svg" --exclude="*" tests open_in_colab/
+        mkdir -p open_in_colab/tests/data/extras/
+        echo "This is an extra file" > open_in_colab/tests/data/extras/extra.dat
+      fem_on_colab_packages: |
+        mpi4py
+      pip_packages: |
+        python-dateutil$dateutil
+        kaleido%plotly
+        itkwidgets
+      test_script: |
+        python3 -m pip install plotly
+        python3 -m pytest --nbval open_in_colab/tests
+      publish_on: github@fem-on-colab/open-in-colab-workflow@open-in-colab
+      publish_if_repository: fem-on-colab/open-in-colab-workflow
