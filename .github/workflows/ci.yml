@@ -5,6 +5,7 @@ on:
     branches:
       - "**"
       - "!open-in-kaggle"
+      - "!**-update-20**"
   pull_request:
     branches:
       - main
