@@ -1,4 +1,4 @@
-name: Open notebooks in Colab
+name: Open notebooks in Kaggle
 
 on:
   workflow_call:
@@ -21,8 +21,8 @@ on:
       test_script:
         description: "Script to be run to test notebooks"
         type: string
-      fem_on_colab_packages:
-        description: "List of packages that need an installation cell among the one offered by FEM on Colab"
+      fem_on_kaggle_packages:
+        description: "List of packages that need an installation cell among the one offered by FEM on Kaggle"
         type: string
       pip_packages:
         description: "List of pip-installable packages that need an installation cell"
@@ -49,7 +49,7 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
-    container: femoncolab/base_images:latest
+    container: femonkaggle/base_images:latest
     steps:
       - name: Mark workspace as safe
         run: |
@@ -64,20 +64,11 @@ jobs:
           apt install -y -qq imagemagick inkscape
           wget https://github.com/rclone/rclone/releases/download/v1.59.1/rclone-v1.59.1-linux-amd64.deb -O /tmp/rclone-v1.59.1-linux-amd64.deb
           dpkg -i /tmp/rclone-v1.59.1-linux-amd64.deb
-      - name: Determine which branch to use while cloning the workflow call library
-        id: workflow_call_library_branch
-        run: |
-          if [[ "${{ github.repository }}" == "fem-on-colab/open-in-colab-workflow" ]]; then
-            BRANCH=${GITHUB_REF##*/}
-          else
-            BRANCH="main"
-          fi
-          echo "branch=${BRANCH}" >> ${GITHUB_OUTPUT}
       - name: Clone workflow call library
         uses: actions/checkout@v3
         with:
           repository: fem-on-colab/open-in-colab-workflow.git
-          ref: ${{ steps.workflow_call_library_branch.outputs.branch }}
+          ref: main
           path: _workflow_call_library
       - name: Install the workflow call library
         run: |
@@ -120,7 +111,7 @@ jobs:
           ${{ inputs.extra_files_preparation }}
       - name: Add installation cells
         run: |
-          python3 -m open_in_cloud_workflow.add_installation_cells "${PWD}/${{ inputs.work_directory }}" "${{ inputs.notebook_pattern }}" "colab" '${{ inputs.fem_on_colab_packages }}' '${{ inputs.pip_packages }}'
+          python3 -m open_in_cloud_workflow.add_installation_cells "${PWD}/${{ inputs.work_directory }}" "${{ inputs.notebook_pattern }}" "kaggle" '${{ inputs.fem_on_kaggle_packages }}' '${{ inputs.pip_packages }}'
       - name: Test notebooks in the work directory
         if: inputs.test_script != ''
         run: |
@@ -136,7 +127,7 @@ jobs:
           python3 -m open_in_cloud_workflow.replace_images_in_markdown "${PWD}/${{ inputs.work_directory }}" "${{ inputs.notebook_pattern }}"
       - name: Replace links in markdown
         run: |
-          python3 -m open_in_cloud_workflow.replace_links_in_markdown "${PWD}/${{ inputs.work_directory }}" "${{ inputs.notebook_pattern }}" "colab" "${{ inputs.publish_on }}"
+          python3 -m open_in_cloud_workflow.replace_links_in_markdown "${PWD}/${{ inputs.work_directory }}" "${{ inputs.notebook_pattern }}" "kaggle" "${{ inputs.publish_on }}"
         env:
           RCLONE_CONFIG_DRIVE_CLIENT_ID: "${{ secrets.RCLONE_CONFIG_DRIVE_CLIENT_ID }}"
           RCLONE_CONFIG_DRIVE_CLIENT_SECRET: "${{ secrets.RCLONE_CONFIG_DRIVE_CLIENT_SECRET }}"
