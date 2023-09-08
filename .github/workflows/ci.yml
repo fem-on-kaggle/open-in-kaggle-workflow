@@ -92,3 +92,13 @@ jobs:
         python3 -m pytest --nbval open_in_kaggle/tests
       publish_on: github@fem-on-kaggle/open-in-kaggle-workflow@open-in-kaggle
       publish_if_repository: fem-on-kaggle/open-in-kaggle-workflow
+
+  warn:
+    runs-on: ubuntu-latest
+    if: github.repository == 'fem-on-kaggle/open-in-kaggle-workflow' && github.ref == 'refs/heads/main' && github.event_name == 'schedule'
+    steps:
+      - name: Warn if scheduled workflow is about to be disabled
+        uses: fem-on-colab/warn-workflow-about-to-be-disabled-action@main
+        with:
+          workflow-filename: ci.yml
+          days-elapsed: 50
