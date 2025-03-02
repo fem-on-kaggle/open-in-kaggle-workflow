@@ -45,7 +45,6 @@ jobs:
         kaleido%plotly
         itkwidgets
       test_script: |
-        python3 -m pip install plotly
         python3 -m pytest --nbval open_in_kaggle/tests
       publish_on: artifact@open-in-kaggle
       publish_if_repository: fem-on-kaggle/open-in-kaggle-workflow
@@ -70,7 +69,6 @@ jobs:
         kaleido%plotly
         itkwidgets
       test_script: |
-        python3 -m pip install plotly
         python3 -m pytest --nbval open_in_kaggle/tests
       publish_on: drive@GitHub/open_in_kaggle_workflow
       publish_if_repository: fem-on-kaggle/open-in-kaggle-workflow
@@ -99,7 +97,6 @@ jobs:
         kaleido%plotly
         itkwidgets
       test_script: |
-        python3 -m pip install plotly
         python3 -m pytest --nbval open_in_kaggle/tests
       publish_on: github@fem-on-kaggle/open-in-kaggle-workflow@open-in-kaggle
       publish_if_repository: fem-on-kaggle/open-in-kaggle-workflow
