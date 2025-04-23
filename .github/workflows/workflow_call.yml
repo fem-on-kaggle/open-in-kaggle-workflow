@@ -49,7 +49,7 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
-    container: femonkaggle/base_images:latest
+    container: ghcr.io/fem-on-kaggle/base:latest
     steps:
       - name: Mark workspace as safe
         run: |
