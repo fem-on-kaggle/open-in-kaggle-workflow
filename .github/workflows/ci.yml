@@ -25,7 +25,24 @@ jobs:
         run: |
           python3 -m yamllint -d "{extends: default, rules: {document-start: {present: false}, line-length: disable, truthy: {check-keys: false}}}" .
 
-  test_workflow_artifact:
+  upload_notebooks_as_artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: fem-on-colab/open-in-colab-workflow
+          ref: main
+          path: open_in_colab_workflow_data
+      - name: Store notebook files in an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-notebooks
+          path: |
+            open_in_colab_workflow_data/**/*.ipynb
+          retention-days: 1
+          if-no-files-found: error
+
+  test_workflow_publish_on_artifact_notebooks_from_git:
     uses: fem-on-kaggle/open-in-kaggle-workflow/.github/workflows/workflow_call.yml@main
     with:
       work_directory: open_in_kaggle
@@ -46,10 +63,47 @@ jobs:
         itkwidgets
       test_script: |
         python3 -m pytest --nbval open_in_kaggle/tests
-      publish_on: artifact@open-in-kaggle
+      publish_on: artifact@open-in-kaggle-notebooks-from-git
       publish_if_repository: fem-on-kaggle/open-in-kaggle-workflow
 
-  test_workflow_drive:
+  test_workflow_publish_on_artifact_notebooks_from_another_artifact:
+    needs: [upload_notebooks_as_artifact]
+    uses: fem-on-kaggle/open-in-kaggle-workflow/.github/workflows/workflow_call.yml@main
+    with:
+      work_directory: open_in_kaggle
+      notebook_pattern: "**/*.ipynb"
+      extra_files_pattern: "**/*.dat"
+      notebook_preparation: |
+        curl -s -H "Authorization: token $GITHUB_TOKEN" \
+          "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
+          > artifacts.json
+        export ARTIFACT_NAME=all-notebooks
+        ARTIFACT_URL=$(jq -r ".artifacts[] | select(.name==\"$ARTIFACT_NAME\") | .archive_download_url" artifacts.json)
+        if [ -z "$ARTIFACT_URL" ]; then
+          echo "Artifact not found"
+          cat artifacts.json
+          exit 1
+        fi
+        curl -L -s -H "Authorization: token $GITHUB_TOKEN" -o $ARTIFACT_NAME.zip "$ARTIFACT_URL"
+        unzip -oq $ARTIFACT_NAME.zip -d open_in_kaggle
+        rm -f $ARTIFACT_NAME.zip
+      extra_files_preparation: |
+        git clone https://github.com/fem-on-colab/open-in-colab-workflow.git open_in_colab_workflow_data
+        rsync -avz --include "*/" --include="*.png" --include="*.jpg" --include="*.svg" --exclude="*" open_in_colab_workflow_data/tests open_in_kaggle/
+        mkdir -p open_in_kaggle/tests/data/extras/
+        echo "This is an extra file" > open_in_kaggle/tests/data/extras/extra.dat
+      fem_on_kaggle_packages: |
+        mpi4py
+      pip_packages: |
+        python-dateutil$dateutil
+        kaleido%plotly
+        itkwidgets
+      test_script: |
+        python3 -m pytest --nbval open_in_kaggle/tests
+      publish_on: artifact@open-in-kaggle-notebooks-from-another-artifact
+      publish_if_repository: fem-on-kaggle/open-in-kaggle-workflow
+
+  test_workflow_publish_on_drive:
     uses: fem-on-kaggle/open-in-kaggle-workflow/.github/workflows/workflow_call.yml@main
     with:
       work_directory: open_in_kaggle
@@ -77,7 +131,7 @@ jobs:
       RCLONE_CONFIG_DRIVE_CLIENT_SECRET: "${{ secrets.RCLONE_CONFIG_DRIVE_CLIENT_SECRET }}"
       RCLONE_CONFIG_DRIVE_TOKEN: "${{ secrets.RCLONE_CONFIG_DRIVE_TOKEN }}"
 
-  test_workflow_github:
+  test_workflow_publish_on_github:
     uses: fem-on-kaggle/open-in-kaggle-workflow/.github/workflows/workflow_call.yml@main
     with:
       work_directory: open_in_kaggle
