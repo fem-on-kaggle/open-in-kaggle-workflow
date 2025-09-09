@@ -55,6 +55,7 @@ jobs:
         rsync -avz --include "*/" --include="*.png" --include="*.jpg" --include="*.svg" --exclude="*" open_in_colab_workflow_data/tests open_in_kaggle/
         mkdir -p open_in_kaggle/tests/data/extras/
         echo "This is an extra file" > open_in_kaggle/tests/data/extras/extra.dat
+        date > open_in_kaggle/tests/data/extras/$(tr -dc "a-zA-Z0-9" </dev/urandom | head -c 10).dat
       fem_on_kaggle_packages: |
         mpi4py
       pip_packages: |
@@ -92,6 +93,7 @@ jobs:
         rsync -avz --include "*/" --include="*.png" --include="*.jpg" --include="*.svg" --exclude="*" open_in_colab_workflow_data/tests open_in_kaggle/
         mkdir -p open_in_kaggle/tests/data/extras/
         echo "This is an extra file" > open_in_kaggle/tests/data/extras/extra.dat
+        date > open_in_kaggle/tests/data/extras/$(tr -dc "a-zA-Z0-9" </dev/urandom | head -c 10).dat
       fem_on_kaggle_packages: |
         mpi4py
       pip_packages: |
@@ -116,6 +118,7 @@ jobs:
         rsync -avz --include "*/" --include="*.png" --include="*.jpg" --include="*.svg" --exclude="*" open_in_colab_workflow_data/tests open_in_kaggle/
         mkdir -p open_in_kaggle/tests/data/extras/
         echo "This is an extra file" > open_in_kaggle/tests/data/extras/extra.dat
+        date > open_in_kaggle/tests/data/extras/$(tr -dc "a-zA-Z0-9" </dev/urandom | head -c 10).dat
       fem_on_kaggle_packages: |
         mpi4py
       pip_packages: |
@@ -144,6 +147,7 @@ jobs:
         rsync -avz --delete --include "*/" --include="*.png" --include="*.jpg" --include="*.svg" --exclude="*" open_in_colab_workflow_data/tests open_in_kaggle/
         mkdir -p open_in_kaggle/tests/data/extras/
         echo "This is an extra file" > open_in_kaggle/tests/data/extras/extra.dat
+        date > open_in_kaggle/tests/data/extras/$(tr -dc "a-zA-Z0-9" </dev/urandom | head -c 10).dat
       fem_on_kaggle_packages: |
         mpi4py
       pip_packages: |
