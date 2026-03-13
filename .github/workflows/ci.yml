@@ -34,7 +34,7 @@ jobs:
           ref: main
           path: open_in_colab_workflow_data
       - name: Store notebook files in an artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: all-notebooks
           path: |
